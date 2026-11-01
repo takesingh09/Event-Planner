@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GenAI Celebration & Event Planner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom spinner animation */
+        .loader {
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: #ffffff;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* Custom Scrollbar for results */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans selection:bg-brand-500 selection:text-white pb-12">
+
+    <!-- Navbar -->
+    <nav class="border-b border-white/10 bg-slate-900/50 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <svg class="w-8 h-8 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
+                <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-brand-500 to-blue-400">EventSync AI</h1>
+            </div>
+            <div class="flex items-center gap-3 relative">
+                <input type="password" id="apiKeyInput" placeholder="Paste Gemini API Key" class="bg-slate-800 border border-slate-700 text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-brand-500 w-48 transition-colors" autocomplete="off">
+                <div class="group cursor-help">
+                    <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <div class="absolute right-0 top-full mt-2 w-64 bg-slate-800 border border-slate-700 rounded-lg p-3 text-xs shadow-xl hidden group-hover:block z-50">
+                        Get a free key from Google AI Studio to run this app outside of the Canvas environment.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+        
+        <!-- Header -->
+        <div class="text-center max-w-2xl mx-auto mb-10">
+            <h2 class="text-3xl md:text-4xl font-bold mb-4 tracking-tight">Plan your perfect event in <span class="text-brand-500">seconds.</span></h2>
+            <p class="text-slate-400 text-lg">Input your event details below, and our GenAI agent will generate a customized timeline, budget breakdown, vendor checklist, and creative ideas.</p>
+        </div>
+
+        <!-- Error Message Container -->
+        <div id="errorMessage" class="hidden max-w-2xl mx-auto mb-6 bg-red-500/10 border border-red-500/50 text-red-400 px-4 py-3 rounded-xl flex items-start gap-3">
+            <svg class="w-5 h-5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span id="errorText">An error occurred.</span>
+        </div>
+
+        <!-- Input Form -->
+        <div class="max-w-3xl mx-auto bg-slate-900 border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl relative overflow-hidden">
+            <!-- Decorative gradient blur -->
+            <div class="absolute -top-24 -right-24 w-48 h-48 bg-brand-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
+            
+            <form id="eventForm" class="relative z-10 space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Event Type -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-2">Event Type</label>
+                        <input type="text" id="eventType" required placeholder="e.g. 30th Birthday Party, Wedding, Hackathon" class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all">
+                    </div>
+                    <!-- Total Budget -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-2">Total Budget</label>
+                        <input type="text" id="budget" required placeholder="e.g. $5,000 or ₹50,000" class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all">
+                    </div>
+                    <!-- Date/Timeline -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-2">Event Date</label>
+                        <input type="date" id="eventDate" required class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all [color-scheme:dark]">
+                    </div>
+                    <!-- Guest Count -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-2">Estimated Guests</label>
+                        <input type="number" id="guestCount" required min="1" placeholder="e.g. 50" class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all">
+                    </div>
+                </div>
+
+                <!-- Additional Context (Optional) -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">Specific Requirements (Optional)</label>
+                    <textarea id="additionalContext" rows="2" placeholder="e.g. Must have vegetarian options, outdoor venue preferred..." class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all resize-none"></textarea>
+                </div>
+
+                <button type="submit" id="submitBtn" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-semibold py-4 rounded-xl shadow-[0_0_15px_rgba(124,58,237,0.3)] hover:shadow-[0_0_25px_rgba(124,58,237,0.5)] transition-all flex justify-center items-center gap-2">
+                    <span id="btnText">Generate Event Plan</span>
+                    <div id="btnLoader" class="loader hidden"></div>
+                </button>
+            </form>
+        </div>
+
+        <!-- Results Section (Hidden by default) -->
+        <div id="resultsSection" class="mt-12 hidden space-y-8 animate-[fadeIn_0.5s_ease-out]">
+            
+            <!-- Dashboard Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <!-- Left Column: Ideas & Vendors -->
+                <div class="lg:col-span-1 space-y-6">
+                    <!-- Personalized Ideas -->
+                    <div class="bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-xl h-full">
+                        <div class="flex items-center gap-3 mb-6">
+                            <div class="p-2 bg-yellow-500/20 rounded-lg text-yellow-400">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                            </div>
+                            <h3 class="text-xl font-bold">Creative Concepts</h3>
+                        </div>
+                        <div id="ideasContainer" class="space-y-4">
+                            <!-- Ideas injected via JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Middle/Right Column: Budget & Timeline -->
+                <div class="lg:col-span-2 space-y-6">
+                    
+                    <!-- Budget Breakdown -->
+                    <div class="bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-xl">
+                        <div class="flex items-center gap-3 mb-6">
+                            <div class="p-2 bg-green-500/20 rounded-lg text-green-400">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            </div>
+                            <h3 class="text-xl font-bold">Budget Breakdown</h3>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="border-b border-slate-800 text-slate-400 text-sm">
+                                        <th class="py-3 px-4 font-medium">Expense Item</th>
+                                        <th class="py-3 px-4 font-medium text-right">Estimated Cost</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="budgetContainer" class="divide-y divide-slate-800">
+                                    <!-- Budget items injected via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Layout for Timeline & Checklists -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Timeline -->
+                        <div class="bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-xl">
+                            <div class="flex items-center gap-3 mb-6">
+                                <div class="p-2 bg-blue-500/20 rounded-lg text-blue-400">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                </div>
+                                <h3 class="text-xl font-bold">Timeline</h3>
+                            </div>
+                            <div class="relative border-l border-slate-700 ml-3 space-y-6" id="timelineContainer">
+                                <!-- Timeline items injected via JS -->
+                            </div>
+                        </div>
+
+                        <!-- Vendor Checklist -->
+                        <div class="bg-slate-900 border border-white/10 rounded-2xl p-6 shadow-xl">
+                            <div class="flex items-center gap-3 mb-6">
+                                <div class="p-2 bg-pink-500/20 rounded-lg text-pink-400">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                </div>
+                                <h3 class="text-xl font-bold">Vendor Checklist</h3>
+                            </div>
+                            <div class="space-y-3" id="vendorContainer">
+                                <!-- Vendor items injected via JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // Form submission handling
+        document.getElementById('eventForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // UI elements
+            const submitBtn = document.getElementById('submitBtn');
+            const btnText = document.getElementById('btnText');
+            const btnLoader = document.getElementById('btnLoader');
+            const resultsSection = document.getElementById('resultsSection');
+            const errorMessage = document.getElementById('errorMessage');
+            const errorText = document.getElementById('errorText');
+            
+            // Get user inputs
+            const eventType = document.getElementById('eventType').value;
+            const budget = document.getElementById('budget').value;
+            const eventDate = document.getElementById('eventDate').value;
+            const guestCount = document.getElementById('guestCount').value;
+            const additionalContext = document.getElementById('additionalContext').value;
+            
+            // Manage API Key (Check local input first, fallback to empty string for Canvas env)
+            const apiKeyInput = document.getElementById('apiKeyInput').value.trim();
+            const apiKey = apiKeyInput || ""; // If empty, platform injection handles it if in Canvas.
+
+            if (!apiKey && window.location.hostname !== "localhost" && !window.location.hostname.includes("google")) {
+                // Minor validation if they deployed it and forgot to put a key
+                // Note: Not blocking execution completely to strictly follow system prompt constraints, 
+                // but providing a hint if it fails.
+            }
+
+            // Set loading state
+            submitBtn.disabled = true;
+            submitBtn.classList.add('opacity-80', 'cursor-not-allowed');
+            btnText.textContent = 'Generating Plan...';
+            btnLoader.classList.remove('hidden');
+            errorMessage.classList.add('hidden');
+            resultsSection.classList.add('hidden');
+
+            // Construct System Instruction & User Prompt
+            const systemPrompt = `You are a world-class, professional event planner and coordinator. 
+Your task is to take user constraints (event type, budget, date, guests) and create a realistic, detailed event plan.
+You MUST output your response exactly matching the provided JSON schema. Ensure costs look realistic for the given currency.`;
+
+            let userPromptText = `Please plan a ${eventType} for ${guestCount} guests scheduled for ${eventDate}. The total budget is ${budget}.`;
+            if (additionalContext) {
+                userPromptText += ` Additional requirements/context: ${additionalContext}.`;
+            }
+
+            // Prepare Gemini API Payload with JSON Schema strictly defined
+            const payload = {
+                contents: [{
+                    role: "user",
+                    parts: [{ text: userPromptText }]
+                }],
+                systemInstruction: {
+                    parts: [{ text: systemPrompt }]
+                },
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            budget_breakdown: {
+                                type: "ARRAY",
+                                description: "Detailed itemized list of expenses adding up to the total budget.",
+                                items: {
+                                    type: "OBJECT",
+                                    properties: {
+                                        item: { type: "STRING", description: "Name of the expense item (e.g., Venue, Catering)" },
+                                        estimated_cost: { type: "STRING", description: "Estimated cost including currency symbol" }
+                                    },
+                                    required: ["item", "estimated_cost"]
+                                }
+                            },
+                            timeline: {
+                                type: "ARRAY",
+                                description: "Chronological steps leading up to and during the event.",
+                                items: {
+                                    type: "OBJECT",
+                                    properties: {
+                                        time_or_phase: { type: "STRING", description: "Timeframe (e.g., '3 months before' or '6:00 PM')" },
+                                        action: { type: "STRING", description: "The task to be completed." }
+                                    },
+                                    required: ["time_or_phase", "action"]
+                                }
+                            },
+                            vendor_checklist: {
+                                type: "ARRAY",
+                                description: "List of vendors or services needed.",
+                                items: { type: "STRING" }
+                            },
+                            personalized_ideas: {
+                                type: "ARRAY",
+                                description: "3 to 4 creative, specific ideas for themes, decorations, or activities.",
+                                items: { type: "STRING" }
+                            }
+                        },
+                        required: ["budget_breakdown", "timeline", "vendor_checklist", "personalized_ideas"]
+                    }
+                }
+            };
+
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+            try {
+                // API Call
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.error?.message || "Failed to fetch plan. Ensure API key is valid.");
+                }
+
+                const result = await response.json();
+                
+                // Extract and parse JSON
+                const candidate = result.candidates?.[0];
+                if (candidate && candidate.content?.parts?.[0]?.text) {
+                    const jsonText = candidate.content.parts[0].text;
+                    const planData = JSON.parse(jsonText);
+                    
+                    // Render UI
+                    renderResults(planData);
+                    
+                    // Show results smoothly
+                    resultsSection.classList.remove('hidden');
+                    // Scroll to results
+                    resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } else {
+                    throw new Error("Unexpected response format from AI.");
+                }
+
+            } catch (error) {
+                console.error("Error generating plan:", error);
+                errorText.textContent = error.message;
+                errorMessage.classList.remove('hidden');
+            } finally {
+                // Reset loading state
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('opacity-80', 'cursor-not-allowed');
+                btnText.textContent = 'Generate Event Plan';
+                btnLoader.classList.add('hidden');
+            }
+        });
+
+        // Function to dynamically render the JSON payload into the DOM
+        function renderResults(data) {
+            // 1. Render Ideas
+            const ideasContainer = document.getElementById('ideasContainer');
+            ideasContainer.innerHTML = '';
+            if (data.personalized_ideas && data.personalized_ideas.length > 0) {
+                data.personalized_ideas.forEach(idea => {
+                    ideasContainer.innerHTML += `
+                        <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-4 text-sm text-slate-300 leading-relaxed hover:bg-slate-800 transition-colors">
+                            ✨ ${idea}
+                        </div>
+                    `;
+                });
+            }
+
+            // 2. Render Budget
+            const budgetContainer = document.getElementById('budgetContainer');
+            budgetContainer.innerHTML = '';
+            if (data.budget_breakdown && data.budget_breakdown.length > 0) {
+                data.budget_breakdown.forEach(item => {
+                    budgetContainer.innerHTML += `
+                        <tr class="hover:bg-slate-800/50 transition-colors">
+                            <td class="py-3 px-4 text-slate-300 text-sm">${item.item}</td>
+                            <td class="py-3 px-4 text-slate-200 text-sm font-semibold text-right">${item.estimated_cost}</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            // 3. Render Timeline
+            const timelineContainer = document.getElementById('timelineContainer');
+            timelineContainer.innerHTML = '';
+            if (data.timeline && data.timeline.length > 0) {
+                data.timeline.forEach(step => {
+                    timelineContainer.innerHTML += `
+                        <div class="relative pl-6">
+                            <!-- Timeline Dot -->
+                            <div class="absolute -left-1.5 top-1 w-3 h-3 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.8)] border border-slate-900"></div>
+                            <h4 class="text-blue-400 font-semibold text-sm mb-1">${step.time_or_phase}</h4>
+                            <p class="text-slate-300 text-sm leading-relaxed">${step.action}</p>
+                        </div>
+                    `;
+                });
+            }
+
+            // 4. Render Vendor Checklist
+            const vendorContainer = document.getElementById('vendorContainer');
+            vendorContainer.innerHTML = '';
+            if (data.vendor_checklist && data.vendor_checklist.length > 0) {
+                data.vendor_checklist.forEach((vendor, index) => {
+                    const id = `vendor-${index}`;
+                    vendorContainer.innerHTML += `
+                        <div class="flex items-start gap-3 p-3 bg-slate-800/30 rounded-lg hover:bg-slate-800/60 transition-colors cursor-pointer" onclick="document.getElementById('${id}').click()">
+                            <div class="pt-0.5">
+                                <input type="checkbox" id="${id}" class="w-4 h-4 rounded border-slate-600 text-pink-500 focus:ring-pink-500/50 bg-slate-700 cursor-pointer" onclick="event.stopPropagation()">
+                            </div>
+                            <label for="${id}" class="text-sm text-slate-300 cursor-pointer select-none">${vendor}</label>
+                        </div>
+                    `;
+                });
+            }
+        }
+    </script>
+</body>
+</html>
